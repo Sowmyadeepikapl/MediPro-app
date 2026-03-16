@@ -6,7 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { UserMedication } from "@/data/mockData";
+import { UserMedication } from "@/data/mockdata";
 
 interface MedicationsContextType {
   medications: UserMedication[];

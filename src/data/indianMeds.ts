@@ -6,7 +6,7 @@
 // Muscle Relaxants, Psychotropic, Urology, Bone & Joint
 // ============================================================
 
-import { Medication } from "./mockData";
+import { Medication } from "./mockdata";
 
 export const additionalMedications: Medication[] = [
   // ── CARDIAC & BLOOD PRESSURE (15) ──────────────────────────

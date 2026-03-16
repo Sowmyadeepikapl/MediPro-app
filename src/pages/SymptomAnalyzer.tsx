@@ -29,7 +29,7 @@ import {
   symptomResults,
   medications,
   type SymptomResult,
-} from "@/data/mockData";
+} from "@/data/mockdata";
 import { useToast } from "@/hooks/use-toast";
 import MobileLayout from "@/components/MobileLayout";
 

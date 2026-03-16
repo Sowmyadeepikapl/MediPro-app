@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import MobileLayout from "@/components/MobileLayout";
 import { useReminders, ExtendedReminder } from "@/contexts/RemindersContext";
-import { medications } from "@//data/mockdata";
+import { medications } from "@/data/mockdata";
 // ── Helpers ────────────────────────────────────────────
 const toDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

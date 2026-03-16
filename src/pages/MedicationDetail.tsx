@@ -11,7 +11,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { medications } from "@/data/mockData";
+import { medications } from "@/data/mockdata";
 import { useToast } from "@/hooks/use-toast";
 import { useMedications } from "@/contexts/MedicationsContext";
 import { useReminders } from "@/contexts/RemindersContext";

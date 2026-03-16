@@ -6,7 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { Reminder } from "@/data/mockData";
+import { Reminder } from "@/data/mockdata";
 
 export interface ExtendedReminder extends Reminder {
   date: string;

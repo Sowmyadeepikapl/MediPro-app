@@ -20,7 +20,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { medications } from "@/data/mockData";
+import { medications } from "@/data/mockdata";
 import { useMedications } from "@/contexts/MedicationsContext";
 import { useToast } from "@/hooks/use-toast";
 import MobileLayout from "@/components/MobileLayout";
