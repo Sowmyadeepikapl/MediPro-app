@@ -3123,6 +3123,421 @@ export const symptomResults: Record<string, SymptomResult> = {
     warning:
       "Identify and avoid allergens. Consult a doctor for persistent symptoms.",
   },
+  // ============================================================
+  // ADD THESE ENTRIES TO YOUR symptomResults object in mockdata.ts
+  // These cover all the new chips added to SymptomAnalyzer
+  // ============================================================
+
+  // Paste each of these inside your existing symptomResults object
+  // in mockdata.ts, after the last entry (before the closing });
+
+  "chest pain": {
+    condition: "Musculoskeletal Chest Pain / Costochondritis",
+    severity: "moderate",
+    medications: [
+      {
+        name: "Ibuprofen (Brufen)",
+        purpose: "Anti-inflammatory pain relief",
+        admetScore: 7.8,
+      },
+      {
+        name: "Paracetamol (Crocin)",
+        purpose: "Mild pain relief",
+        admetScore: 8.5,
+      },
+      {
+        name: "Diclofenac (Voveran)",
+        purpose: "Strong anti-inflammatory",
+        admetScore: 7.4,
+      },
+    ],
+    articles: [
+      {
+        title: "Approach to Chest Pain in Primary Care",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_cp1",
+      },
+      {
+        title: "Costochondritis: Diagnosis and Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_cp2",
+      },
+    ],
+    warning:
+      "⚠️ IMPORTANT: Chest pain can indicate a serious heart condition. If pain is severe, radiates to arm/jaw, or is accompanied by shortness of breath or sweating — call 108 IMMEDIATELY. Do not self-medicate for unexplained chest pain.",
+  },
+
+  dizziness: {
+    condition: "Vertigo / Postural Hypotension",
+    severity: "mild",
+    medications: [
+      {
+        name: "Cetirizine (Zyrtec)",
+        purpose: "Antihistamine for vestibular dizziness",
+        admetScore: 8.0,
+      },
+      {
+        name: "Domperidone (Domstal)",
+        purpose: "Reduce associated nausea",
+        admetScore: 7.6,
+      },
+      {
+        name: "Paracetamol (Crocin)",
+        purpose: "Headache associated with dizziness",
+        admetScore: 8.5,
+      },
+    ],
+    articles: [
+      {
+        title: "Evaluation and Management of Dizziness",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_dz1",
+      },
+      {
+        title: "Benign Paroxysmal Positional Vertigo",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_dz2",
+      },
+    ],
+    warning:
+      "Seek medical help if dizziness is severe, recurrent, or accompanied by hearing loss, double vision, or difficulty walking. Stay seated or lying down when dizzy to avoid falls.",
+  },
+
+  "runny nose": {
+    condition: "Allergic Rhinitis / Common Cold",
+    severity: "mild",
+    medications: [
+      {
+        name: "Cetirizine (Zyrtec)",
+        purpose: "Antihistamine to reduce runny nose",
+        admetScore: 8.0,
+      },
+      {
+        name: "Levocetirizine (Xyzal)",
+        purpose: "Non-sedating antihistamine",
+        admetScore: 8.2,
+      },
+      {
+        name: "Phenylephrine (Sinarest)",
+        purpose: "Nasal decongestant",
+        admetScore: 7.8,
+      },
+    ],
+    articles: [
+      {
+        title: "Allergic Rhinitis: Diagnosis and Treatment",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_rn1",
+      },
+      {
+        title: "Management of Common Cold Symptoms",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_rn2",
+      },
+    ],
+    warning:
+      "If runny nose persists beyond 10 days, becomes thick/yellow/green, or is accompanied by facial pain or fever, consult a doctor as it may indicate sinusitis.",
+  },
+
+  "eye irritation": {
+    condition: "Allergic Conjunctivitis / Eye Strain",
+    severity: "mild",
+    medications: [
+      {
+        name: "Sodium Cromoglicate Eye Drops (Opticrom)",
+        purpose: "Mast cell stabilizer for allergic eyes",
+        admetScore: 8.8,
+      },
+      {
+        name: "Cetirizine (Zyrtec)",
+        purpose: "Oral antihistamine for eye allergy",
+        admetScore: 8.0,
+      },
+      {
+        name: "Ciprofloxacin Eye Drops (Ciplox)",
+        purpose: "If bacterial infection suspected",
+        admetScore: 8.5,
+      },
+    ],
+    articles: [
+      {
+        title: "Allergic Conjunctivitis Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_ei1",
+      },
+      {
+        title: "Red Eye: Diagnosis and Treatment",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_ei2",
+      },
+    ],
+    warning:
+      "See a doctor if eye pain is severe, vision is affected, eye is very red, or there is thick discharge. Do not rub eyes. Remove contact lenses immediately if irritated.",
+  },
+
+  "skin rash": {
+    condition: "Allergic Skin Reaction / Contact Dermatitis",
+    severity: "mild",
+    medications: [
+      {
+        name: "Cetirizine (Zyrtec)",
+        purpose: "Oral antihistamine to reduce itching",
+        admetScore: 8.0,
+      },
+      {
+        name: "Hydrocortisone Cream (Cortaid)",
+        purpose: "Topical steroid for inflammation",
+        admetScore: 8.0,
+      },
+      {
+        name: "Calamine Lotion (Lacto Calamine)",
+        purpose: "Soothing and antipruritic",
+        admetScore: 9.2,
+      },
+    ],
+    articles: [
+      {
+        title: "Approach to Skin Rash in Adults",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_sr1",
+      },
+      {
+        title: "Contact Dermatitis: Recognition and Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_sr2",
+      },
+    ],
+    warning:
+      "Seek immediate help if rash spreads rapidly, is accompanied by fever, difficulty breathing, or swelling of face/throat — this may indicate a severe allergic reaction (anaphylaxis). Call 108 immediately.",
+  },
+
+  "muscle cramps": {
+    condition: "Muscle Cramps / Electrolyte Imbalance",
+    severity: "mild",
+    medications: [
+      {
+        name: "Magnesium (Mag2)",
+        purpose: "Magnesium deficiency related cramps",
+        admetScore: 8.5,
+      },
+      {
+        name: "Calcium + Vitamin D3 (Shelcal)",
+        purpose: "Calcium deficiency cramps",
+        admetScore: 9.0,
+      },
+      {
+        name: "Ibuprofen (Brufen)",
+        purpose: "Pain relief for severe cramps",
+        admetScore: 7.8,
+      },
+    ],
+    articles: [
+      {
+        title: "Nocturnal Leg Cramps: Prevention and Treatment",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_mc1",
+      },
+      {
+        title: "Electrolyte Imbalance and Muscle Cramps",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_mc2",
+      },
+    ],
+    warning:
+      "Stay hydrated and stretch regularly. If cramps are frequent, severe, or associated with swelling or weakness, consult a doctor to rule out circulation or nerve problems.",
+  },
+
+  anxiety: {
+    condition: "Generalized Anxiety / Stress",
+    severity: "mild",
+    medications: [
+      {
+        name: "Vitamin B Complex (Becosules)",
+        purpose: "Supports nervous system health",
+        admetScore: 9.0,
+      },
+      {
+        name: "Magnesium (Mag2)",
+        purpose: "Natural calming mineral",
+        admetScore: 8.5,
+      },
+      {
+        name: "Multivitamins (Supradyn)",
+        purpose: "Nutritional support for stress",
+        admetScore: 9.0,
+      },
+    ],
+    articles: [
+      {
+        title: "Non-Pharmacological Management of Anxiety",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_ax1",
+      },
+      {
+        title: "Role of Nutrition in Anxiety Disorders",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_ax2",
+      },
+    ],
+    warning:
+      "For mild anxiety, try deep breathing, meditation, and regular exercise. If anxiety is severe, persistent, or affecting daily life, please consult a mental health professional. Do not self-medicate with prescription anxiolytics.",
+  },
+
+  insomnia: {
+    condition: "Insomnia / Sleep Disturbance",
+    severity: "mild",
+    medications: [
+      {
+        name: "Melatonin (if available OTC)",
+        purpose: "Natural sleep hormone supplement",
+        admetScore: 8.5,
+      },
+      {
+        name: "Magnesium (Mag2)",
+        purpose: "Promotes relaxation and sleep",
+        admetScore: 8.5,
+      },
+      {
+        name: "Vitamin B Complex (Becosules)",
+        purpose: "Supports healthy sleep cycle",
+        admetScore: 9.0,
+      },
+    ],
+    articles: [
+      {
+        title: "Cognitive Behavioral Therapy for Insomnia",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_in1",
+      },
+      {
+        title: "Sleep Hygiene and Insomnia Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_in2",
+      },
+    ],
+    warning:
+      "Avoid screens 1 hour before bed, maintain a consistent sleep schedule, and limit caffeine. If insomnia persists beyond 3 weeks or severely affects daily functioning, consult a doctor. Do not self-medicate with sleeping pills.",
+  },
+
+  "loss of appetite": {
+    condition: "Loss of Appetite / Anorexia",
+    severity: "mild",
+    medications: [
+      {
+        name: "Zinc (Zincovit)",
+        purpose: "Zinc deficiency can cause appetite loss",
+        admetScore: 8.5,
+      },
+      {
+        name: "Vitamin B Complex (Becosules)",
+        purpose: "Stimulates appetite and metabolism",
+        admetScore: 9.0,
+      },
+      {
+        name: "Multivitamins (Supradyn)",
+        purpose: "Nutritional support",
+        admetScore: 9.0,
+      },
+    ],
+    articles: [
+      {
+        title: "Evaluation of Unexplained Weight Loss",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_la1",
+      },
+      {
+        title: "Nutritional Interventions for Poor Appetite",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_la2",
+      },
+    ],
+    warning:
+      "If loss of appetite persists beyond 1 week, is associated with significant weight loss, or accompanied by other symptoms, consult a doctor. Prolonged poor appetite can indicate underlying conditions.",
+  },
+
+  bloating: {
+    condition: "Abdominal Bloating / IBS / Gas",
+    severity: "mild",
+    medications: [
+      {
+        name: "Antacid (Gelusil/Digene)",
+        purpose: "Neutralize gas and acidity",
+        admetScore: 9.0,
+      },
+      {
+        name: "Domperidone (Domstal)",
+        purpose: "Improve gastric motility",
+        admetScore: 7.6,
+      },
+      {
+        name: "Lactobacillus (Sporolac)",
+        purpose: "Restore gut flora to reduce bloating",
+        admetScore: 9.5,
+      },
+    ],
+    articles: [
+      {
+        title: "Functional Bloating: Pathophysiology and Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_bl1",
+      },
+      {
+        title: "Probiotics in Irritable Bowel Syndrome",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_bl2",
+      },
+    ],
+    warning:
+      "Avoid gas-producing foods like beans, cabbage, and carbonated drinks. If bloating is severe, persistent, or associated with pain or weight loss, consult a doctor to rule out IBS or other conditions.",
+  },
+
+  weakness: {
+    condition: "General Weakness / Asthenia",
+    severity: "mild",
+    medications: [
+      {
+        name: "Multivitamins (Supradyn)",
+        purpose: "Nutritional supplementation",
+        admetScore: 9.0,
+      },
+      {
+        name: "Vitamin B Complex (Becosules)",
+        purpose: "Energy metabolism support",
+        admetScore: 9.0,
+      },
+      {
+        name: "Iron (Ferrofol)",
+        purpose: "If anemia-related weakness",
+        admetScore: 8.0,
+      },
+    ],
+    articles: [
+      {
+        title: "Approach to Fatigue and Weakness in Primary Care",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_wk1",
+      },
+      {
+        title: "Micronutrient Deficiency and Fatigue",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_wk2",
+      },
+    ],
+    warning:
+      "Persistent weakness may indicate anemia, thyroid problems, diabetes, or vitamin deficiencies. Get blood tests done if weakness lasts more than 2 weeks. Seek immediate help if weakness is sudden or affects one side of the body.",
+  },
+
+  "mouth ulcer": {
+    condition: "Aphthous Ulcer / Mouth Sore",
+    severity: "mild",
+    medications: [
+      {
+        name: "Vitamin B Complex (Becosules)",
+        purpose: "B vitamin deficiency causes mouth ulcers",
+        admetScore: 9.0,
+      },
+      {
+        name: "Zinc (Zincovit)",
+        purpose: "Zinc supports mouth healing",
+        admetScore: 8.5,
+      },
+      {
+        name: "Vitamin C (Limcee)",
+        purpose: "Boosts healing and immunity",
+        admetScore: 9.2,
+      },
+    ],
+    articles: [
+      {
+        title: "Recurrent Aphthous Stomatitis: Management",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_mu1",
+      },
+      {
+        title: "Nutritional Deficiencies and Oral Ulcers",
+        link: "https://pubmed.ncbi.nlm.nih.gov/example_mu2",
+      },
+    ],
+    warning:
+      "Avoid spicy and acidic foods. Rinse mouth with warm salt water 3–4 times daily. If ulcer persists beyond 2 weeks, grows larger, or is very painful, consult a doctor or dentist to rule out other conditions.",
+  },
 };
 import { additionalMedications } from "./indianMeds";
 
