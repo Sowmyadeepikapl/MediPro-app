@@ -17,6 +17,7 @@ const LoginScreen = () => {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -69,7 +70,34 @@ const LoginScreen = () => {
     }
     // No need to setGoogleLoading(false) on success — page will redirect
   };
-
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({
+        title: "Enter your email",
+        description:
+          "Please enter your email address first then click Forgot Password",
+        variant: "destructive",
+      });
+      return;
+    }
+    setForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotLoading(false);
+    if (error) {
+      toast({
+        title: "Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "✅ Email Sent!",
+        description: `Password reset link sent to ${email}`,
+      });
+    }
+  };
   return (
     <div className="min-h-screen max-w-lg mx-auto flex flex-col bg-background">
       {/* Header gradient */}
@@ -164,8 +192,12 @@ const LoginScreen = () => {
                 Remember Me
               </label>
             </div>
-            <button className="text-sm text-primary font-medium tap-highlight">
-              Forgot Password?
+            <button
+              onClick={handleForgotPassword}
+              disabled={forgotLoading}
+              className="text-sm text-primary font-medium tap-highlight"
+            >
+              {forgotLoading ? "Sending..." : "Forgot Password?"}
             </button>
           </div>
 

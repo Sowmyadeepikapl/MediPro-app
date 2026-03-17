@@ -22,6 +22,7 @@ import PrivacyScreen from "./pages/PrivacyScreen";
 import AboutScreen from "./pages/AboutScreen";
 import NotFound from "./pages/NotFound";
 import AIAssistant from "./pages/AIAssistant";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
                     path="/medication/:id"
                     element={<MedicationDetail />}
                   />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/my-medications" element={<MyMedications />} />
                   <Route path="/reminders" element={<RemindersScreen />} />
                   <Route path="/profile" element={<ProfileScreen />} />
@@ -71,4 +73,3 @@ const App = () => (
 );
 
 export default App;
-
