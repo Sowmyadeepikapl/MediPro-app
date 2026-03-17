@@ -10,13 +10,13 @@
 
 ---
 
-## 🌟 What is MediPro?
+##  What is MediPro?
 
 MediPro is a smart, all-in-one personal health management app designed to help you take control of your medications and wellness — right from your phone. Whether you need to track your daily medicines, analyze symptoms, or chat with an AI health assistant, MediPro has you covered.
 
 ---
 
-## ✨ Features
+## Features
 
 ### 🩺 Symptom Analyzer
 Describe how you're feeling and instantly get possible conditions, severity insights, and recommended medications. Supports **voice input** — just speak your symptoms!
@@ -96,6 +96,7 @@ Create a `.env` file in the root directory:
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_COHERE_API_KEY=your_cohere_api_key
+( keep your api key secured ) 
 ```
 
 ### 4. Set up Supabase database
