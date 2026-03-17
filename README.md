@@ -1,4 +1,4 @@
-# 💊 MediPro — Smart Personal Health Manager
+# MediPro — Smart Personal Health Manager
 
 > A beautiful, mobile-first health management app built with React, TypeScript, and Supabase.
 
@@ -99,55 +99,7 @@ VITE_COHERE_API_KEY=your_cohere_api_key
 ( keep your api key secured ) 
 ```
 
-### 4. Set up Supabase database
-Run this SQL in your Supabase SQL Editor:
-```sql
--- Medications table
-create table user_medications (
-  id text primary key,
-  user_id uuid references auth.users(id) on delete cascade not null,
-  medication_id text,
-  name text not null,
-  dosage text not null,
-  frequency text not null,
-  time_of_day text,
-  food_relation text,
-  start_date text,
-  end_date text,
-  refill_date text,
-  quantity int,
-  notes text,
-  days_remaining int default 30,
-  created_at timestamptz default now()
-);
-
--- Reminders table
-create table user_reminders (
-  id text primary key,
-  user_id uuid references auth.users(id) on delete cascade not null,
-  medication_name text not null,
-  dosage text not null,
-  time text not null,
-  with_food boolean default false,
-  taken boolean default false,
-  skipped boolean default false,
-  snoozed_to text,
-  date text not null,
-  created_at timestamptz default now()
-);
-
--- Row Level Security
-alter table user_medications enable row level security;
-alter table user_reminders enable row level security;
-
-create policy "Users can manage own medications"
-  on user_medications for all using (auth.uid() = user_id);
-
-create policy "Users can manage own reminders"
-  on user_reminders for all using (auth.uid() = user_id);
-```
-
-### 5. Run the development server
+### 4. Run the development server
 ```bash
 npm run dev
 ```
@@ -209,23 +161,8 @@ src/
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs via GitHub Issues
-- Suggest new features
-- Submit pull requests
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
 ## 👩‍💻 Built by
 
-**Sowmya** — Built with ❤️ using React, TypeScript, and a lot of chai ☕
+**P.L Sowmya Deepika** — Built with ❤️ using React, TypeScript, and a lot of coffee☕
 
 > ⚠️ **Disclaimer:** MediPro is for informational purposes only and is not a substitute for professional medical advice. Always consult a licensed doctor or pharmacist before taking any medication.
