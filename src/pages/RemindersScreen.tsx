@@ -9,6 +9,7 @@ import {
   UtensilsCrossed,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CalendarDays,
   X,
   AlarmClock,
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import MobileLayout from "@/components/MobileLayout";
 import { useReminders, ExtendedReminder } from "@/contexts/RemindersContext";
 import { medications } from "@/data/mockdata";
+
 // ── Helpers ────────────────────────────────────────────
 const toDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -57,6 +59,7 @@ const AddReminderModal = ({
     withFood: false,
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSubmit = () => {
     const e: Record<string, boolean> = {};
@@ -84,10 +87,14 @@ const AddReminderModal = ({
     onClose();
   };
 
+  const filteredMeds = medications.filter((m) =>
+    m.name.toLowerCase().includes(form.medicationName.toLowerCase()),
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <motion.div
-        className="bg-card w-full max-w-md rounded-3xl shadow-elevated p-5"
+        className="bg-card w-full max-w-md rounded-3xl shadow-elevated p-5 max-h-[90vh] overflow-y-auto"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
@@ -121,39 +128,50 @@ const AddReminderModal = ({
               <div className="relative mt-1">
                 <input
                   value={form.medicationName}
-                  onChange={(e) =>
-                    setForm({ ...form, medicationName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, medicationName: e.target.value });
+                    setShowDropdown(true);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                   placeholder="e.g. Paracetamol"
-                  className={`w-full h-10 px-3 rounded-xl border text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 ${errors.medicationName ? "border-destructive" : "border-border"}`}
+                  className={`w-full h-10 px-3 pr-9 rounded-xl border text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 ${errors.medicationName ? "border-destructive" : "border-border"}`}
                 />
-                {form.medicationName.length > 0 && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setShowDropdown((prev) => !prev);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${showDropdown ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {showDropdown && filteredMeds.length > 0 && (
                   <div className="absolute z-10 top-full left-0 w-full mt-1 bg-card border border-border rounded-xl shadow-elevated max-h-48 overflow-y-auto">
-                    {medications
-                      .filter((m) =>
-                        m.name
-                          .toLowerCase()
-                          .includes(form.medicationName.toLowerCase()),
-                      )
-                      .map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() =>
-                            setForm({
-                              ...form,
-                              medicationName: m.name,
-                              dosage: m.dosage.adult,
-                            })
-                          }
-                          className="w-full text-left px-3 py-2.5 hover:bg-primary/10 text-sm text-foreground border-b border-border/40 last:border-0 transition-colors"
-                        >
-                          <span className="font-medium">{m.name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {m.dosage.adult}
-                          </span>
-                        </button>
-                      ))}
+                    {filteredMeds.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onMouseDown={() => {
+                          setForm({
+                            ...form,
+                            medicationName: m.name,
+                            dosage: m.dosage.adult,
+                          });
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 hover:bg-primary/10 text-sm text-foreground border-b border-border/40 last:border-0 transition-colors"
+                      >
+                        <span className="font-medium">{m.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {m.dosage.adult}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -217,8 +235,6 @@ const AddReminderModal = ({
 const RemindersScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // ✅ USE CONTEXT — not local state
   const { reminders, markTaken, skipReminder, snoozeReminder, addReminder } =
     useReminders();
 
@@ -288,7 +304,6 @@ const RemindersScreen = () => {
     selectedDate.getMonth() === realToday.getMonth() &&
     selectedDate.getFullYear() === realToday.getFullYear();
 
-  // ✅ All actions call context functions
   const handleTake = (id: string) => {
     markTaken(id);
     toast({ title: "✅ Taken!", description: "Medication marked as taken" });
