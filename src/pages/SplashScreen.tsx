@@ -72,7 +72,7 @@ const SplashScreen = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            MediScan Pro
+            MediPro
           </motion.h1>
           <motion.p
             className="text-primary-foreground/80 text-sm font-medium"

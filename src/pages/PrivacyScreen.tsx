@@ -115,7 +115,7 @@ const PrivacyScreen = () => {
             <p className="text-xs text-muted-foreground">
               Questions about your privacy?{" "}
               <span className="text-primary font-medium">
-                Contact us at support@medipro.app
+                Contact us at myselfsenorita.5@gmail.com
               </span>
             </p>
           </motion.div>

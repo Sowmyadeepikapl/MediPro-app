@@ -50,7 +50,7 @@ const AIAssistant = () => {
             .join(", ")
         : "none";
 
-    return `You are a helpful, empathetic AI Health Assistant built into a medication management app called MediScan.
+    return `You are a helpful, empathetic AI Health Assistant built into a medication management app called MediPro.
 The user's current saved medications are: ${medList}.
 Your role:
 - Help users understand symptoms in simple, clear language

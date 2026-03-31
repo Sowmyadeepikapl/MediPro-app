@@ -113,7 +113,7 @@ const RegisterScreen = () => {
             Create Account
           </h1>
           <p className="text-primary-foreground/80 text-sm mt-1">
-            Join MediScan Pro today
+            Join MediPro today
           </p>
         </motion.div>
       </div>

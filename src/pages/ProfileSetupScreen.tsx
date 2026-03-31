@@ -93,7 +93,7 @@ const ProfileSetupScreen = () => {
     });
     toast({
       title: "Profile saved! 🎉",
-      description: "Welcome to MediScan Pro",
+      description: "Welcome to MediPro",
     });
     navigate("/dashboard", { replace: true });
   };

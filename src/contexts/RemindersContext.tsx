@@ -25,7 +25,6 @@ interface RemindersContextType {
   markTaken: (id: string) => Promise<void>;
   snoozeReminder: (id: string) => Promise<void>;
   skipReminder: (id: string) => Promise<void>;
-  // ── Global alarm ──────────────────────────────────
   alarmReminder: ExtendedReminder | null;
   dismissAlarm: () => void;
 }
@@ -49,21 +48,63 @@ export const useReminders = () => useContext(RemindersContext);
 const toDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-/** Convert current time to "HH:MM AM/PM" to match stored reminder format */
-const getCurrentTimeStr = (): string => {
+/**
+ * FIX 1 — ±1 minute window
+ * Returns true if reminder time matches current time within ±1 minute.
+ * Prevents the "rings 1 min late" issue caused by interval timing drift.
+ */
+const isWithinWindow = (reminderTimeStr: string): boolean => {
   const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+
+  // Parse stored "HH:MM AM/PM" back to total minutes
+  const [timePart, ampm] = reminderTimeStr.split(" ");
+  const [hStr, mStr] = timePart.split(":");
+  let h = parseInt(hStr);
+  const m = parseInt(mStr);
+  if (ampm === "AM" && h === 12) h = 0;
+  if (ampm === "PM" && h !== 12) h += 12;
+  const reminderMinutes = h * 60 + m;
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Match if within ±1 minute
+  return Math.abs(nowMinutes - reminderMinutes) <= 1;
 };
 
-// ── Audio: 3-pulse gentle chime ────────────────────────
+// ── FIX 3 — Shared AudioContext unlocked by user gesture ──
+// Mobile Chrome blocks audio until after a user tap.
+// We create one shared context and resume it on first interaction.
+let sharedAudioCtx: AudioContext | null = null;
+
+const getAudioContext = (): AudioContext | null => {
+  try {
+    if (!sharedAudioCtx) {
+      const AudioCtx =
+        window.AudioContext || (window as any).webkitAudioContext;
+      sharedAudioCtx = new AudioCtx();
+    }
+    // Resume if suspended (happens after page background on mobile)
+    if (sharedAudioCtx.state === "suspended") {
+      sharedAudioCtx.resume();
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+};
+
+// Call this once on any user interaction to pre-unlock audio
+export const unlockAudio = () => {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume();
+  }
+};
+
 const playAlarmSound = () => {
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioCtx();
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
     const playBeep = (startTime: number) => {
       const oscillator = ctx.createOscillator();
@@ -83,7 +124,6 @@ const playAlarmSound = () => {
     playBeep(ctx.currentTime);
     playBeep(ctx.currentTime + 0.55);
     playBeep(ctx.currentTime + 1.1);
-    setTimeout(() => ctx.close(), 2000);
   } catch (err) {
     console.warn("Audio playback failed:", err);
   }
@@ -107,6 +147,46 @@ const showBrowserNotification = (medicationName: string, dosage: string) => {
   }
 };
 
+// ── FIX 2 — localStorage persistence for fired alarms ─
+// In-memory firedRef dies when mobile suspends JS.
+// We persist fired keys in localStorage so they survive tab suspension.
+const FIRED_KEY = "medipro_fired_alarms";
+const TODAY_KEY = "medipro_fired_date";
+
+const loadFiredKeys = (): Set<string> => {
+  try {
+    const today = toDateKey(new Date());
+    const savedDate = localStorage.getItem(TODAY_KEY);
+    // Reset fired keys daily
+    if (savedDate !== today) {
+      localStorage.setItem(TODAY_KEY, today);
+      localStorage.removeItem(FIRED_KEY);
+      return new Set();
+    }
+    const raw = localStorage.getItem(FIRED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveFiredKey = (key: string) => {
+  try {
+    const keys = loadFiredKeys();
+    keys.add(key);
+    localStorage.setItem(FIRED_KEY, JSON.stringify([...keys]));
+  } catch {}
+};
+
+const hasFiredKey = (key: string): boolean => {
+  try {
+    const keys = loadFiredKeys();
+    return keys.has(key);
+  } catch {
+    return false;
+  }
+};
+
 // ── Provider ───────────────────────────────────────────
 export const RemindersProvider = ({ children }: { children: ReactNode }) => {
   const [reminders, setReminders] = useState<ExtendedReminder[]>([]);
@@ -116,9 +196,8 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     null,
   );
 
-  // firedRef tracks "reminderID:timeString" so both original AND snoozed
-  // times each get their own independent fire slot
-  const firedRef = useRef<Set<string>>(new Set());
+  // In-memory cache as fast path; localStorage is source of truth
+  const firedRef = useRef<Set<string>>(loadFiredKeys());
 
   // ── Auth ─────────────────────────────────────────────
   useEffect(() => {
@@ -142,33 +221,50 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     fetchReminders();
   }, [userId]);
 
-  // ── Notification permission ───────────────────────────
+  // ── Permissions + audio unlock on first tap ───────────
   useEffect(() => {
     requestNotificationPermission();
+    // FIX 3: unlock audio on first user interaction
+    const unlock = () => {
+      unlockAudio();
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click", unlock);
+    };
+    window.addEventListener("touchstart", unlock, { passive: true });
+    window.addEventListener("click", unlock);
+    return () => {
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click", unlock);
+    };
   }, []);
 
-  // ── Global alarm checker ──────────────────────────────
+  // ── Core alarm checker ────────────────────────────────
   const checkAlarms = useCallback(() => {
     const todayKey = toDateKey(new Date());
-    const currentTimeStr = getCurrentTimeStr();
 
     const due = reminders.find((r) => {
       if (r.date !== todayKey) return false;
       if (r.taken || r.skipped) return false;
 
-      // ✅ FIX: use snoozedTo if it exists, otherwise use original time
       const effectiveTime = r.snoozedTo ?? r.time;
-
-      // Unique key = id + effectiveTime so snoozed slot fires independently
       const fireKey = `${r.id}:${effectiveTime}`;
 
-      return effectiveTime === currentTimeStr && !firedRef.current.has(fireKey);
+      // FIX 1: use ±1 min window instead of exact match
+      // FIX 2: check both in-memory AND localStorage
+      const alreadyFired =
+        firedRef.current.has(fireKey) || hasFiredKey(fireKey);
+
+      return isWithinWindow(effectiveTime) && !alreadyFired;
     });
 
     if (due) {
       const effectiveTime = due.snoozedTo ?? due.time;
       const fireKey = `${due.id}:${effectiveTime}`;
+
+      // Save to both in-memory and localStorage
       firedRef.current.add(fireKey);
+      saveFiredKey(fireKey);
+
       playAlarmSound();
       showBrowserNotification(due.medicationName, due.dosage);
       setAlarmReminder(due);
@@ -178,7 +274,23 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkAlarms();
     const interval = setInterval(checkAlarms, 30_000);
-    return () => clearInterval(interval);
+
+    // FIX 2: re-check immediately when user returns to tab/app
+    // This catches the case where mobile suspended JS and missed the interval
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Sync firedRef from localStorage (may have updated in another tab)
+        firedRef.current = loadFiredKeys();
+        checkAlarms();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [checkAlarms]);
 
   const dismissAlarm = () => setAlarmReminder(null);
@@ -305,8 +417,6 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       console.error("[Reminders] Snooze failed:", error.message);
     } else {
-      // ✅ FIX: don't delete from firedRef — the new snoozedTo time
-      // gets its own unique fireKey so it fires independently
       setReminders((prev) =>
         prev.map((r) => (r.id === id ? { ...r, snoozedTo } : r)),
       );

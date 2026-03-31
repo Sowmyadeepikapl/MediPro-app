@@ -135,7 +135,7 @@ const LoginScreen = () => {
             Welcome Back
           </h1>
           <p className="text-primary-foreground/80 text-sm mt-1">
-            Sign in to MediScan Pro
+            Sign in to MediPro
           </p>
         </motion.div>
       </div>
