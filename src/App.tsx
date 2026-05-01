@@ -12,6 +12,7 @@ import { Bell, UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReminders, ExtendedReminder } from "@/contexts/RemindersContext";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 import SplashScreen from "./pages/SplashScreen";
 import LoginScreen from "./pages/LoginScreen";
 import RegisterScreen from "./pages/RegisterScreen";
@@ -34,16 +35,30 @@ const queryClient = new QueryClient();
 // ── Global Alarm Modal ─────────────────────────────────
 // Rendered at top level so it appears on ANY page
 const GlobalAlarmModal = () => {
-  const { alarmReminder, dismissAlarm, markTaken, snoozeReminder } =
-    useReminders();
+  const {
+    alarmReminder,
+    dismissAlarm,
+    markTaken,
+    snoozeReminder,
+    skipReminder,
+  } = useReminders();
   const { toast } = useToast();
 
+  // Debug logging - helps identify if alarm is being set on mobile
+  useEffect(() => {
+    if (alarmReminder) {
+      console.log("[Modal] Alarm reminder received:", alarmReminder);
+    }
+  }, [alarmReminder]);
+
+  // Don't return null early - we want to check if alarmReminder exists
+  // But also ensure it's not undefined or null
   if (!alarmReminder) return null;
 
   const handleTake = () => {
     markTaken(alarmReminder.id);
     toast({ title: "✅ Taken!", description: "Medication marked as taken" });
-    dismissAlarm();
+    // No need to call dismissAlarm() here - markTaken already clears it in context
   };
 
   const handleSnooze = () => {
@@ -52,7 +67,16 @@ const GlobalAlarmModal = () => {
       title: "⏰ Snoozed 10 min",
       description: "We'll remind you again soon",
     });
-    dismissAlarm();
+    // No need to call dismissAlarm() here - snoozeReminder already clears it in context
+  };
+
+  const handleSkip = () => {
+    skipReminder(alarmReminder.id);
+    toast({
+      title: "⏭ Skipped",
+      description: "Reminder marked as skipped",
+    });
+    // No need to call dismissAlarm() here - skipReminder already clears it in context
   };
 
   return (
@@ -91,7 +115,7 @@ const GlobalAlarmModal = () => {
               {alarmReminder.dosage}
             </p>
             <p className="text-xs text-primary font-semibold mt-1">
-              {alarmReminder.time}
+              {alarmReminder.snoozedTo || alarmReminder.time}
             </p>
             {alarmReminder.withFood && (
               <div className="flex items-center justify-center gap-1 mt-2">
@@ -121,9 +145,9 @@ const GlobalAlarmModal = () => {
               <Button
                 variant="ghost"
                 className="flex-1 h-10 rounded-xl text-sm text-muted-foreground"
-                onClick={dismissAlarm}
+                onClick={handleSkip}
               >
-                Dismiss
+                Skip
               </Button>
             </div>
           </div>
