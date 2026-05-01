@@ -228,9 +228,6 @@ const AboutScreen = () => {
             <p className="text-xs text-muted-foreground">
               Made with ❤️ for better health management
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              © 2026 MediPro. All rights reserved.
-            </p>
           </motion.div>
         </div>
       </div>

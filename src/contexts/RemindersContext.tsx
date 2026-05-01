@@ -48,84 +48,137 @@ export const useReminders = () => useContext(RemindersContext);
 const toDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-/**
- * FIX 1 — ±1 minute window
- * Returns true if reminder time matches current time within ±1 minute.
- * Prevents the "rings 1 min late" issue caused by interval timing drift.
- */
-const isWithinWindow = (reminderTimeStr: string): boolean => {
-  const now = new Date();
-
-  // Parse stored "HH:MM AM/PM" back to total minutes
-  const [timePart, ampm] = reminderTimeStr.split(" ");
-  const [hStr, mStr] = timePart.split(":");
-  let h = parseInt(hStr);
-  const m = parseInt(mStr);
+const timeStrToMinutes = (timeStr: string): number => {
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return -1;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
   if (ampm === "AM" && h === 12) h = 0;
   if (ampm === "PM" && h !== 12) h += 12;
-  const reminderMinutes = h * 60 + m;
-
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  // Match if within ±1 minute
-  return Math.abs(nowMinutes - reminderMinutes) <= 1;
+  return h * 60 + m;
 };
 
-// ── FIX 3 — Shared AudioContext unlocked by user gesture ──
-// Mobile Chrome blocks audio until after a user tap.
-// We create one shared context and resume it on first interaction.
-let sharedAudioCtx: AudioContext | null = null;
+const nowMinutes = (): number => {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+};
 
-const getAudioContext = (): AudioContext | null => {
+// ── Persistent fired keys ──────────────────────────────
+const FIRED_KEY = "medipro_fired_alarms";
+const getFiredSet = (): Set<string> => {
   try {
-    if (!sharedAudioCtx) {
-      const AudioCtx =
-        window.AudioContext || (window as any).webkitAudioContext;
-      sharedAudioCtx = new AudioCtx();
-    }
-    // Resume if suspended (happens after page background on mobile)
-    if (sharedAudioCtx.state === "suspended") {
-      sharedAudioCtx.resume();
-    }
-    return sharedAudioCtx;
+    const raw = localStorage.getItem(FIRED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+const addFiredKey = (key: string) => {
+  try {
+    const set = getFiredSet();
+    set.add(key);
+    localStorage.setItem(FIRED_KEY, JSON.stringify([...set]));
+  } catch {}
+};
+
+// ── Persistent pending alarm ───────────────────────────
+const PENDING_ALARM_KEY = "medipro_pending_alarm";
+const savePendingAlarm = (r: ExtendedReminder | null) => {
+  try {
+    if (r) localStorage.setItem(PENDING_ALARM_KEY, JSON.stringify(r));
+    else localStorage.removeItem(PENDING_ALARM_KEY);
+  } catch {}
+};
+const loadPendingAlarm = (): ExtendedReminder | null => {
+  try {
+    const raw = localStorage.getItem(PENDING_ALARM_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-// Call this once on any user interaction to pre-unlock audio
+// ── AudioContext — MOBILE FIX ──────────────────────────
+// On mobile, AudioContext MUST be created inside a user-gesture handler.
+// We create it once on the first tap and reuse it forever.
+// Trying to create it inside a timer callback (no gesture) is silently blocked.
+let sharedAudioCtx: AudioContext | null = null;
+let audioUnlocked = false;
+
 export const unlockAudio = () => {
-  const ctx = getAudioContext();
-  if (ctx && ctx.state === "suspended") {
-    ctx.resume();
+  // Already unlocked — nothing to do
+  if (audioUnlocked && sharedAudioCtx) return;
+
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    // Resume if the browser suspended it (common on mobile after backgrounding)
+    if (sharedAudioCtx.state === "suspended") {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    // Play a silent 1-sample buffer — this is the "unlock" gesture handshake
+    const buf = sharedAudioCtx.createBuffer(1, 1, 22050);
+    const src = sharedAudioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(sharedAudioCtx.destination);
+    src.start(0);
+    audioUnlocked = true;
+  } catch {
+    // Silently ignore — will retry on next gesture
   }
 };
 
+// ── Play alarm using the pre-unlocked shared context ──
 const playAlarmSound = () => {
   try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
+    const ctx = sharedAudioCtx;
 
-    const playBeep = (startTime: number) => {
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(880, startTime);
-      oscillator.frequency.exponentialRampToValueAtTime(660, startTime + 0.15);
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.45, startTime + 0.05);
-      gainNode.gain.linearRampToValueAtTime(0, startTime + 0.4);
-      oscillator.start(startTime);
-      oscillator.stop(startTime + 0.4);
+    // If context was never unlocked (user never tapped), we can't play audio.
+    // This is a hard browser restriction on mobile — nothing we can do.
+    if (!ctx) {
+      console.warn("[Alarm] AudioContext not unlocked yet — no sound played");
+      return;
+    }
+
+    // Always resume in case the browser suspended the context while backgrounded
+    const play = () => {
+      const playBeep = (startTime: number) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(880, startTime);
+        oscillator.frequency.exponentialRampToValueAtTime(
+          660,
+          startTime + 0.15,
+        );
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, startTime + 0.4);
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.4);
+      };
+
+      const t = ctx.currentTime;
+      playBeep(t);
+      playBeep(t + 0.55);
+      playBeep(t + 1.1);
     };
 
-    playBeep(ctx.currentTime);
-    playBeep(ctx.currentTime + 0.55);
-    playBeep(ctx.currentTime + 1.1);
+    if (ctx.state === "suspended") {
+      ctx
+        .resume()
+        .then(play)
+        .catch(() => {});
+    } else {
+      play();
+    }
   } catch (err) {
-    console.warn("Audio playback failed:", err);
+    console.warn("[Alarm] Audio playback failed:", err);
   }
 };
 
@@ -147,43 +200,28 @@ const showBrowserNotification = (medicationName: string, dosage: string) => {
   }
 };
 
-// ── FIX 2 — localStorage persistence for fired alarms ─
-// In-memory firedRef dies when mobile suspends JS.
-// We persist fired keys in localStorage so they survive tab suspension.
-const FIRED_KEY = "medipro_fired_alarms";
-const TODAY_KEY = "medipro_fired_date";
+// ── Wake Lock — keeps screen/JS alive on mobile ────────
+// Without this, Chrome on Android throttles timers aggressively.
+// The Wake Lock API (where supported) prevents the CPU from sleeping.
+let wakeLock: WakeLockSentinel | null = null;
 
-const loadFiredKeys = (): Set<string> => {
+const acquireWakeLock = async () => {
+  if (!("wakeLock" in navigator)) return;
   try {
-    const today = toDateKey(new Date());
-    const savedDate = localStorage.getItem(TODAY_KEY);
-    // Reset fired keys daily
-    if (savedDate !== today) {
-      localStorage.setItem(TODAY_KEY, today);
-      localStorage.removeItem(FIRED_KEY);
-      return new Set();
-    }
-    const raw = localStorage.getItem(FIRED_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
+    wakeLock = await (navigator as any).wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => {
+      // Re-acquire when the browser releases it (e.g. tab becomes visible again)
+      wakeLock = null;
+    });
   } catch {
-    return new Set();
+    // Not critical — timers still run, just possibly at reduced frequency
   }
 };
 
-const saveFiredKey = (key: string) => {
-  try {
-    const keys = loadFiredKeys();
-    keys.add(key);
-    localStorage.setItem(FIRED_KEY, JSON.stringify([...keys]));
-  } catch {}
-};
-
-const hasFiredKey = (key: string): boolean => {
-  try {
-    const keys = loadFiredKeys();
-    return keys.has(key);
-  } catch {
-    return false;
+const releaseWakeLock = async () => {
+  if (wakeLock) {
+    await wakeLock.release().catch(() => {});
+    wakeLock = null;
   }
 };
 
@@ -193,11 +231,11 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [alarmReminder, setAlarmReminder] = useState<ExtendedReminder | null>(
-    null,
+    () => loadPendingAlarm(),
   );
 
-  // In-memory cache as fast path; localStorage is source of truth
-  const firedRef = useRef<Set<string>>(loadFiredKeys());
+  const remindersRef = useRef<ExtendedReminder[]>([]);
+  remindersRef.current = reminders;
 
   // ── Auth ─────────────────────────────────────────────
   useEffect(() => {
@@ -221,79 +259,135 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     fetchReminders();
   }, [userId]);
 
-  // ── Permissions + audio unlock on first tap ───────────
+  // ── Unlock audio + notifications on FIRST USER TAP ───
+  // CRITICAL for mobile: AudioContext must be created/resumed inside
+  // a touchstart or click handler. We attach these once and remove after.
   useEffect(() => {
     requestNotificationPermission();
-    // FIX 3: unlock audio on first user interaction
-    const unlock = () => {
+
+    const handleGesture = () => {
       unlockAudio();
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("click", unlock);
+      acquireWakeLock();
+      // Remove listeners after first unlock — we don't need them again
+      document.removeEventListener("touchstart", handleGesture);
+      document.removeEventListener("click", handleGesture);
     };
-    window.addEventListener("touchstart", unlock, { passive: true });
-    window.addEventListener("click", unlock);
+
+    document.addEventListener("touchstart", handleGesture, { passive: true });
+    document.addEventListener("click", handleGesture);
+
     return () => {
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", handleGesture);
+      document.removeEventListener("click", handleGesture);
     };
   }, []);
 
   // ── Core alarm checker ────────────────────────────────
   const checkAlarms = useCallback(() => {
     const todayKey = toDateKey(new Date());
+    const currentMins = nowMinutes();
+    const firedSet = getFiredSet();
 
-    const due = reminders.find((r) => {
+    const due = remindersRef.current.find((r) => {
       if (r.date !== todayKey) return false;
       if (r.taken || r.skipped) return false;
 
       const effectiveTime = r.snoozedTo ?? r.time;
       const fireKey = `${r.id}:${effectiveTime}`;
+      if (firedSet.has(fireKey)) return false;
 
-      // FIX 1: use ±1 min window instead of exact match
-      // FIX 2: check both in-memory AND localStorage
-      const alreadyFired =
-        firedRef.current.has(fireKey) || hasFiredKey(fireKey);
+      const reminderMins = timeStrToMinutes(effectiveTime);
+      if (reminderMins < 0) return false;
 
-      return isWithinWindow(effectiveTime) && !alreadyFired;
+      // ±2 min window to catch throttled timer checks on mobile
+      const diff = Math.abs(currentMins - reminderMins);
+      return diff <= 2;
     });
 
     if (due) {
       const effectiveTime = due.snoozedTo ?? due.time;
       const fireKey = `${due.id}:${effectiveTime}`;
-
-      // Save to both in-memory and localStorage
-      firedRef.current.add(fireKey);
-      saveFiredKey(fireKey);
-
+      addFiredKey(fireKey);
+      savePendingAlarm(due);
       playAlarmSound();
       showBrowserNotification(due.medicationName, due.dosage);
       setAlarmReminder(due);
     }
-  }, [reminders]);
+  }, []);
 
+  // ── Timer: every 20s ──────────────────────────────────
+  // Mobile Chrome throttles hidden-tab timers to ~60s.
+  // We use visibilitychange + PageLifecycle to compensate (see below).
   useEffect(() => {
     checkAlarms();
-    const interval = setInterval(checkAlarms, 30_000);
+    const interval = setInterval(checkAlarms, 20_000);
+    return () => clearInterval(interval);
+  }, [checkAlarms]);
 
-    // FIX 2: re-check immediately when user returns to tab/app
-    // This catches the case where mobile suspended JS and missed the interval
-    const handleVisibilityChange = () => {
+  // ── Visibility change — fires when user returns to tab ─
+  // This is the KEY fix for mobile: when Chrome brings the tab back to the
+  // foreground, we immediately run a check. This catches any alarms that
+  // were due while the tab was throttled/suspended in the background.
+  useEffect(() => {
+    const handleVisibility = async () => {
       if (document.visibilityState === "visible") {
-        // Sync firedRef from localStorage (may have updated in another tab)
-        firedRef.current = loadFiredKeys();
+        // Re-acquire wake lock (browser releases it when tab is hidden)
+        acquireWakeLock();
+
+        // Resume audio context if it was suspended while backgrounded
+        if (sharedAudioCtx?.state === "suspended") {
+          await sharedAudioCtx.resume().catch(() => {});
+        }
+
+        // First check if there's a pending alarm saved to localStorage
+        // (set before the tab was backgrounded/suspended)
+        const pending = loadPendingAlarm();
+        if (pending) {
+          setAlarmReminder(pending);
+          playAlarmSound();
+          return;
+        }
+
+        // Otherwise run a fresh check — alarms due while we were away
+        checkAlarms();
+      } else {
+        // Tab going to background — release wake lock to save battery
+        releaseWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [checkAlarms]);
+
+  // ── Page freeze/resume (mobile app-switching) ─────────
+  // The Page Lifecycle API fires "freeze" when Android kills the tab's
+  // CPU budget and "resume" when the user comes back. Older Chrome on
+  // Android may not fire visibilitychange reliably — this is the fallback.
+  useEffect(() => {
+    const handleResume = () => {
+      const pending = loadPendingAlarm();
+      if (pending) {
+        setAlarmReminder(pending);
+        playAlarmSound();
+      } else {
         checkAlarms();
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
+    window.addEventListener("resume", handleResume);
+    window.addEventListener("pageshow", handleResume);
     return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("resume", handleResume);
+      window.removeEventListener("pageshow", handleResume);
     };
   }, [checkAlarms]);
 
-  const dismissAlarm = () => setAlarmReminder(null);
+  const dismissAlarm = () => {
+    savePendingAlarm(null);
+    setAlarmReminder(null);
+  };
 
   // ── CRUD ─────────────────────────────────────────────
   const fetchReminders = async () => {
@@ -392,11 +486,13 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       console.error("[Reminders] markTaken failed:", error.message);
     } else {
+      savePendingAlarm(null);
       setReminders((prev) =>
         prev.map((r) =>
           r.id === id ? { ...r, taken: true, skipped: false } : r,
         ),
       );
+      setAlarmReminder(null);
     }
   };
 
@@ -417,6 +513,8 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       console.error("[Reminders] Snooze failed:", error.message);
     } else {
+      savePendingAlarm(null);
+      setAlarmReminder(null);
       setReminders((prev) =>
         prev.map((r) => (r.id === id ? { ...r, snoozedTo } : r)),
       );
@@ -432,6 +530,8 @@ export const RemindersProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       console.error("[Reminders] Skip failed:", error.message);
     } else {
+      savePendingAlarm(null);
+      setAlarmReminder(null);
       setReminders((prev) =>
         prev.map((r) =>
           r.id === id ? { ...r, skipped: true, taken: false } : r,
